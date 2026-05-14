@@ -1,0 +1,82 @@
+{
+  "title": "Sample Test Report",
+  "timestamp": "2026-05-13T10:00:00",
+  "duration": 12.5,
+  "environment": {
+    "python": "3.11.0",
+    "platform": "Linux-6.1"
+  },
+  "results": [
+    {
+      "name": "test_login",
+      "nodeid": "tests/test_auth.py::test_login",
+      "suite": "test_auth",
+      "outcome": "passed",
+      "duration": 1.2,
+      "start_time": 1747130400.0,
+      "description": "Test valid login",
+      "markers": ["smoke"],
+      "error_message": "",
+      "error_traceback": "",
+      "stdout": "",
+      "properties": {}
+    },
+    {
+      "name": "test_logout",
+      "nodeid": "tests/test_auth.py::test_logout",
+      "suite": "test_auth",
+      "outcome": "failed",
+      "duration": 0.8,
+      "start_time": 1747130401.2,
+      "description": "Test logout flow",
+      "markers": [],
+      "error_message": "AssertionError: expected 200",
+      "error_traceback": "  File \"test_auth.py\", line 25\n    assert resp.status == 200",
+      "stdout": "Logging out user...",
+      "properties": {}
+    },
+    {
+      "name": "test_signup",
+      "nodeid": "tests/test_auth.py::test_signup",
+      "suite": "test_auth",
+      "outcome": "skipped",
+      "duration": 0.0,
+      "start_time": 0,
+      "description": "",
+      "markers": ["skip"],
+      "error_message": "Not implemented",
+      "error_traceback": "",
+      "stdout": "",
+      "properties": {}
+    },
+    {
+      "name": "test_home_page",
+      "nodeid": "tests/test_pages.py::test_home_page",
+      "suite": "test_pages",
+      "outcome": "passed",
+      "duration": 2.5,
+      "start_time": 1747130402.0,
+      "description": "Verify home page loads",
+      "markers": ["smoke", "ui"],
+      "error_message": "",
+      "error_traceback": "",
+      "stdout": "",
+      "properties": {"browser": "chrome"}
+    },
+    {
+      "name": "test_dashboard",
+      "nodeid": "tests/test_pages.py::test_dashboard",
+      "suite": "test_pages",
+      "outcome": "error",
+      "duration": 0.3,
+      "start_time": 1747130404.5,
+      "description": "",
+      "markers": [],
+      "error_message": "ConnectionError",
+      "error_traceback": "  File \"test_pages.py\", line 42\n    raise ConnectionError()",
+      "stdout": "",
+      "properties": {}
+    }
+  ],
+  "extra": {}
+}

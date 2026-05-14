@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="My Test Suite" tests="5" failures="1" errors="1" skipped="1" time="5.8">
+  <testsuite name="test_auth" tests="3" failures="1" errors="0" skipped="1" time="2.0">
+    <testcase name="test_login" classname="tests.test_auth" time="1.2">
+      <system-out>Login successful</system-out>
+    </testcase>
+    <testcase name="test_logout" classname="tests.test_auth" time="0.8">
+      <failure message="AssertionError: expected 200">  File "test_auth.py", line 25
+    assert resp.status == 200</failure>
+    </testcase>
+    <testcase name="test_signup" classname="tests.test_auth" time="0.0">
+      <skipped message="Not implemented"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="test_pages" tests="2" failures="0" errors="1" skipped="0" time="3.8">
+    <testcase name="test_home_page" classname="tests.test_pages" time="2.5">
+      <properties>
+        <property name="browser" value="chrome"/>
+      </properties>
+    </testcase>
+    <testcase name="test_dashboard" classname="tests.test_pages" time="0.3">
+      <error message="ConnectionError">  File "test_pages.py", line 42
+    raise ConnectionError()</error>
+    </testcase>
+  </testsuite>
+</testsuites>

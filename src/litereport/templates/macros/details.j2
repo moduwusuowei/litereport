@@ -1,0 +1,80 @@
+{% macro render_details(failures, top_duration) %}
+{# ── Failures tab ── #}
+<div class="tab-panel" id="panel-failures">
+  {% if failures %}
+    {% for r in failures %}
+    <div class="failure-card">
+      <div class="failure-header" onclick="this.parentElement.classList.toggle('expanded')">
+        <span class="failure-icon">{% if r.outcome == 'failed' %}&#x2717;{% else %}&#x26A0;{% endif %}</span>
+        <span class="failure-name">{{ r.nodeid | e }}</span>
+        <span class="failure-duration">{{ "%.2f" | format(r.duration) }}s</span>
+      </div>
+      <div class="failure-body">
+        {% if r.description %}<div class="failure-desc">{{ r.description | e }}</div>{% endif %}
+        <div class="failure-message">{{ r.error_message | e }}</div>
+        <pre class="failure-traceback">{{ r.error_traceback | e }}</pre>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p style="color:var(--text3);padding:40px;text-align:center">&#x2705; No failures</p>
+  {% endif %}
+</div>
+
+{# ── Duration tab ── #}
+<div class="tab-panel" id="panel-duration">
+  <div class="chart-box" style="margin-bottom:20px">
+    <h3>{{ 'slowest_tests' | t }} (Top {{ top_duration | length }})</h3>
+    <canvas id="chart-duration" style="max-height:350px;max-width:80%"></canvas>
+  </div>
+  <div class="table-wrap">
+    <div class="scroll-table">
+      <table>
+        <thead><tr><th>#</th><th>Test</th><th>Status</th><th>{{ 'duration' | t }}</th><th>Bar</th></tr></thead>
+        <tbody>
+        {% set max_dur = top_duration[0].duration if top_duration else 1 %}
+        {% for r in top_duration %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td class="test-name-cell">{{ r.name | e }}</td>
+            <td><span class="badge badge-{{ r.outcome }}">{{ r.outcome }}</span></td>
+            <td class="duration-cell">{{ "%.2f" | format(r.duration) }}s</td>
+            <td>
+              <div class="dur-bar" style="width:{{ "%.0f" | format([r.duration / (max_dur if max_dur else 1) * 100, 100] | min) }}%"></div>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{# ── All Tests tab ── #}
+<div class="tab-panel" id="panel-details">
+  <div class="table-wrap">
+    <div class="table-toolbar">
+      <input type="text" id="search-input" placeholder="{{ 'search_placeholder' | t }}">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="passed">{{ 'passed' | t }}</button>
+      <button class="filter-btn" data-filter="failed">{{ 'failed' | t }}</button>
+      <button class="filter-btn" data-filter="skipped">{{ 'skipped' | t }}</button>
+      <button class="filter-btn" data-filter="xfailed">XFailed</button>
+      <button class="filter-btn" data-filter="xpassed">XPassed</button>
+    </div>
+    <div class="scroll-table">
+      <table id="details-table">
+        <thead><tr>
+          <th data-sort="index">#</th>
+          <th data-sort="name">Test</th>
+          <th data-sort="description">Description</th>
+          <th data-sort="suite">Suite</th>
+          <th data-sort="outcome">Status</th>
+          <th data-sort="duration">{{ 'duration' | t }}</th>
+        </tr></thead>
+        <tbody id="details-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endmacro %}

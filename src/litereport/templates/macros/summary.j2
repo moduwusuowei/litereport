@@ -1,0 +1,20 @@
+{% macro render_summary(summary, duration_str) %}
+<div class="stats-grid">
+  <div class="stat-card total"><div class="label">Total</div><div class="value">{{ summary.total }}</div><div class="sub">{{ duration_str }}</div></div>
+  <div class="stat-card pass"><div class="label">{{ 'passed' | t }}</div><div class="value">{{ summary.passed }}</div><div class="sub">{{ summary.passed }}/{{ summary.total }}</div></div>
+  <div class="stat-card fail"><div class="label">{{ 'failed' | t }}</div><div class="value">{{ summary.failed + summary.error }}</div><div class="sub">{{ summary.failed }} {{ 'failed' | t }} + {{ summary.error }} error</div></div>
+  <div class="stat-card skip"><div class="label">{{ 'skipped' | t }}</div><div class="value">{{ summary.skipped + summary.xfailed }}</div><div class="sub">{{ summary.skipped }} skip + {{ summary.xfailed }} xfail</div></div>
+  <div class="stat-card rate"><div class="label">{{ 'pass_rate' | t }}</div><div class="value">{{ "%.1f" | format(summary.pass_rate) }}%</div></div>
+  <div class="stat-card time"><div class="label">{{ 'duration' | t }}</div><div class="value">{{ duration_str }}</div></div>
+</div>
+<div class="chart-row">
+  <div class="chart-box">
+    <h3>{{ 'result_distribution' | t }}</h3>
+    <canvas id="chart-donut"></canvas>
+  </div>
+  <div class="chart-box">
+    <h3>{{ 'suite_breakdown' | t }}</h3>
+    <canvas id="chart-category"></canvas>
+  </div>
+</div>
+{% endmacro %}

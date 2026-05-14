@@ -1,0 +1,49 @@
+{% macro render_suites(suites_data) %}
+{# suites_data: list of {name, total, passed, failed, skipped, duration, pass_rate, bar_p, bar_f, bar_s, cases} #}
+<div class="table-wrap">
+  <div class="scroll-table">
+    <table>
+      <thead><tr>
+        <th>Suite</th><th>Total</th><th>{{ 'passed' | t }}</th><th>{{ 'failed' | t }}</th><th>{{ 'skipped' | t }}</th><th>Rate</th><th>Time</th><th>Distribution</th>
+      </tr></thead>
+      <tbody>
+      {% for s in suites_data %}
+        <tr class="suite-row" onclick="toggleSuite('{{ s.id }}')">
+          <td class="suite-name"><span class="suite-arrow" id="arrow-{{ s.id }}">&#x25B6;</span> {{ s.name | e }}</td>
+          <td>{{ s.total }}</td>
+          <td class="c-pass">{{ s.passed }}</td>
+          <td class="c-fail">{{ s.failed }}</td>
+          <td class="c-skip">{{ s.skipped }}</td>
+          <td>{{ "%.0f" | format(s.pass_rate) }}%</td>
+          <td>{{ "%.1f" | format(s.duration) }}s</td>
+          <td>
+            <div class="mini-bar">
+              <div class="bar-pass" style="width:{{ "%.1f" | format(s.bar_p) }}%"></div>
+              <div class="bar-fail" style="width:{{ "%.1f" | format(s.bar_f) }}%"></div>
+              <div class="bar-skip" style="width:{{ "%.1f" | format(s.bar_s) }}%"></div>
+            </div>
+          </td>
+        </tr>
+        <tr class="suite-detail" id="detail-{{ s.id }}" style="display:none">
+          <td colspan="8" style="padding:0">
+            <table class="suite-cases-table">
+              <thead><tr><th>Test</th><th>Description</th><th>Status</th><th>{{ 'duration' | t }}</th></tr></thead>
+              <tbody>
+              {% for c in s.cases %}
+                <tr>
+                  <td class="test-name-cell" style="padding-left:28px">{{ c.name | e }}</td>
+                  <td class="desc-cell">{% if c.description %}{{ c.description | e }}{% else %}<span style="color:var(--text3)">—</span>{% endif %}</td>
+                  <td><span class="badge badge-{{ c.outcome }}">{{ c.outcome }}</span></td>
+                  <td class="duration-cell">{{ "%.2f" | format(c.duration) }}s</td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endmacro %}

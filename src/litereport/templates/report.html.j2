@@ -1,0 +1,553 @@
+{% from "macros/header.j2" import render_header %}
+{% from "macros/summary.j2" import render_summary %}
+{% from "macros/suites.j2" import render_suites %}
+{% from "macros/details.j2" import render_details %}
+{% from "macros/footer.j2" import render_footer %}
+<!DOCTYPE html>
+<html lang="{{ config.lang }}" data-theme="{{ config.theme }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ data.title | e }}</title>
+<style>
+/* ── Reset & Base ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f8f9fa;--bg3:#e9ecef;--bg4:#dee2e6;
+  --text:#1a1a2e;--text2:#495057;--text3:#868e96;
+  --accent:#6366f1;--accent2:#4f46e5;
+  --green:#16a34a;--green-bg:rgba(22,163,74,.1);
+  --red:#dc2626;--red-bg:rgba(220,38,38,.1);
+  --yellow:#ca8a04;--yellow-bg:rgba(202,138,4,.1);
+  --blue:#2563eb;--blue-bg:rgba(37,99,235,.1);
+  --purple:#9333ea;--purple-bg:rgba(147,51,234,.1);
+  --orange:#ea580c;--orange-bg:rgba(234,88,12,.1);
+  --radius:10px;--radius-sm:6px;
+  --shadow:0 2px 12px rgba(0,0,0,.08);
+}
+[data-theme="dark"]{
+  --bg:#0f1117;--bg2:#1a1d27;--bg3:#252833;--bg4:#2f3344;
+  --text:#f4f5f9;--text2:#c8cde0;--text3:#a0a8c4;
+  --accent:#6366f1;--accent2:#818cf8;
+  --green:#22c55e;--green-bg:rgba(34,197,94,.12);
+  --red:#ef4444;--red-bg:rgba(239,68,68,.12);
+  --yellow:#eab308;--yellow-bg:rgba(234,179,8,.12);
+  --blue:#3b82f6;--blue-bg:rgba(59,130,246,.12);
+  --purple:#a855f7;--purple-bg:rgba(168,85,247,.12);
+  --orange:#f97316;--orange-bg:rgba(249,115,22,.12);
+  --shadow:0 2px 12px rgba(0,0,0,.3);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'PingFang SC','Microsoft YaHei',sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.6;font-size:14px;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+a{color:var(--accent2);text-decoration:none}
+/* ── Layout ── */
+.container{max-width:1400px;width:100%;margin:0 auto;padding:0 24px;display:flex;flex-direction:column;height:100%}
+.header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0;border-bottom:1px solid var(--bg3);flex-shrink:0}
+.header-left{display:flex;flex-direction:column;gap:4px}
+.header h1{font-size:22px;font-weight:700;display:flex;align-items:center;gap:10px;margin:0}
+.header h1 .icon{font-size:28px}
+.header-timestamp{color:var(--text3);font-size:13px}
+/* ── Environment Cards ── */
+.env-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;padding:20px 0 24px;flex-shrink:0}
+.env-card{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:14px 16px;transition:box-shadow .2s,border-color .2s}
+.env-card:hover{border-color:var(--accent);box-shadow:0 2px 8px rgba(99,102,241,.1)}
+.env-card-icon{font-size:20px;flex-shrink:0;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--bg3);border-radius:8px}
+.env-card-body{min-width:0;flex:1}
+.env-card-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;line-height:1.3;margin-bottom:2px}
+.env-card-value{font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.main-content{flex:1;overflow-y:auto;padding:24px 0}
+/* ── Theme toggle ── */
+.theme-toggle{background:var(--bg3);border:1px solid var(--bg4);color:var(--text);cursor:pointer;padding:6px 10px;border-radius:var(--radius-sm);font-size:16px;transition:.2s}
+.theme-toggle:hover{background:var(--accent);color:#fff}
+/* ── Tabs ── */
+.tabs{display:flex;gap:4px;border-bottom:2px solid var(--bg3);margin-bottom:24px}
+.tab{padding:10px 20px;cursor:pointer;color:var(--text2);font-weight:500;border-bottom:2px solid transparent;margin-bottom:-2px;transition:.2s;font-size:14px}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent2);border-bottom-color:var(--accent)}
+.tab-panel{display:none}.tab-panel.active{display:block}
+/* ── Cards ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--bg2);border-radius:var(--radius);padding:20px;border:1px solid var(--bg3)}
+.stat-card .label{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.stat-card .value{font-size:28px;font-weight:700}
+.stat-card .sub{font-size:12px;color:var(--text2);margin-top:4px}
+.stat-card.pass .value{color:var(--green)}.stat-card.fail .value{color:var(--red)}
+.stat-card.skip .value{color:var(--yellow)}.stat-card.total .value{color:var(--accent2)}
+.stat-card.rate .value{color:var(--green)}.stat-card.time .value{color:var(--blue);font-size:22px}
+/* ── Chart layout ── */
+.chart-row{display:grid;grid-template-columns:340px 1fr;gap:20px;margin-bottom:24px}
+.chart-box{background:var(--bg2);border-radius:var(--radius);padding:20px;border:1px solid var(--bg3)}
+.chart-box h3{font-size:14px;color:var(--text2);margin-bottom:16px;font-weight:600}
+.chart-box canvas{max-height:280px}
+@media(max-width:900px){.chart-row{grid-template-columns:1fr}}
+/* ── Table ── */
+.table-wrap{background:var(--bg2);border-radius:var(--radius);border:1px solid var(--bg3);overflow:hidden;margin-bottom:24px}
+.table-toolbar{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--bg3);flex-wrap:wrap}
+.table-toolbar input{background:var(--bg3);border:1px solid var(--bg4);color:var(--text);padding:7px 12px;border-radius:var(--radius-sm);font-size:13px;width:260px}
+.table-toolbar input::placeholder{color:var(--text3)}
+.filter-btn{padding:5px 12px;border-radius:var(--radius-sm);border:1px solid var(--bg4);background:var(--bg3);color:var(--text2);cursor:pointer;font-size:12px;transition:.2s}
+.filter-btn:hover,.filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 14px;color:var(--text3);font-size:12px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--bg3);background:var(--bg2);position:sticky;top:0;cursor:pointer}
+th:hover{color:var(--text)}
+td{padding:10px 14px;border-bottom:1px solid var(--bg3);font-size:13px}
+tr:hover td{background:rgba(99,102,241,.05)}
+.c-pass{color:var(--green)}.c-fail{color:var(--red)}.c-skip{color:var(--yellow)}
+.badge{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;text-transform:uppercase}
+.badge-passed{background:var(--green-bg);color:var(--green)}
+.badge-failed{background:var(--red-bg);color:var(--red)}
+.badge-error{background:var(--red-bg);color:var(--red)}
+.badge-skipped{background:var(--yellow-bg);color:var(--yellow)}
+.badge-xfailed{background:var(--purple-bg);color:var(--purple)}
+.badge-xpassed{background:var(--orange-bg);color:var(--orange)}
+.duration-cell{font-family:'JetBrains Mono',Consolas,monospace;font-size:12px}
+.test-name-cell{max-width:400px;word-break:break-all}
+.desc-cell{max-width:420px;color:var(--text2);font-size:12px}
+/* ── Duration bar ── */
+.dur-bar{height:6px;background:var(--accent);border-radius:3px;min-width:4px;transition:width .3s}
+/* ── Mini stacked bar ── */
+.mini-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;width:120px}
+.bar-pass{background:var(--green)}.bar-fail{background:var(--red)}.bar-skip{background:var(--yellow)}
+/* ── Failure details ── */
+.failure-card{background:var(--bg2);border:1px solid var(--bg3);border-left:3px solid var(--red);border-radius:var(--radius-sm);margin-bottom:10px;overflow:hidden}
+.failure-header{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;transition:background .2s}
+.failure-header:hover{background:var(--bg3)}
+.failure-icon{color:var(--red);font-size:16px}
+.failure-name{flex:1;font-size:13px;font-family:monospace;word-break:break-all}
+.failure-duration{color:var(--text3);font-size:12px}
+.failure-body{display:none;padding:0 16px 16px;border-top:1px solid var(--bg3)}
+.failure-card.expanded .failure-body{display:block}
+.failure-message{color:var(--red);font-size:13px;padding:12px 0 8px;font-weight:500}
+.failure-desc{color:var(--text2);font-size:13px;padding:12px 0 4px;border-bottom:1px dashed var(--bg4);margin-bottom:4px}
+.failure-traceback{background:var(--bg);color:var(--text2);padding:12px;border-radius:var(--radius-sm);font-size:12px;line-height:1.5;overflow-x:auto;max-height:400px;white-space:pre-wrap;word-break:break-all}
+/* ── Suite name ── */
+.suite-name{font-weight:600;color:var(--accent2)}
+.suite-row{cursor:pointer;transition:background .15s}
+.suite-row:hover td{background:rgba(99,102,241,.08)}
+.suite-arrow{display:inline-block;font-size:10px;margin-right:6px;transition:transform .2s;color:var(--text3)}
+.suite-arrow.open{transform:rotate(90deg)}
+.suite-cases-table{width:100%;border-collapse:collapse;background:var(--bg)}
+.suite-cases-table th{font-size:11px;padding:6px 14px;color:var(--text3);border-bottom:1px solid var(--bg3);background:var(--bg);text-transform:uppercase}
+.suite-cases-table td{padding:6px 14px;border-bottom:1px solid var(--bg3);font-size:12px}
+/* ── Scrollable table ── */
+.scroll-table{max-height:600px;overflow-y:auto}
+/* ── Footer ── */
+.footer{text-align:center;padding:12px 0;color:var(--text3);font-size:12px;border-top:1px solid var(--bg3);flex-shrink:0}
+/* ── History dropdown ── */
+.history-wrap{position:relative;display:inline-flex;align-items:center;gap:8px}
+.latest-btn{padding:7px 16px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:rgba(99,102,241,.15);color:var(--accent2);font-size:13px;text-decoration:none;display:flex;align-items:center;gap:5px;transition:.2s;white-space:nowrap}
+.latest-btn:hover{background:var(--accent);color:#fff}
+.history-btn{padding:7px 16px;border-radius:var(--radius-sm);border:1px solid var(--bg4);background:var(--bg3);color:var(--text);cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px;transition:.2s}
+.history-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.history-btn .arrow{font-size:10px;transition:transform .2s}
+.history-wrap.open .arrow{transform:rotate(180deg)}
+.history-dropdown{display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);min-width:380px;max-height:400px;overflow-y:auto;z-index:100;box-shadow:var(--shadow)}
+.history-wrap.open .history-dropdown{display:block}
+.history-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--bg3);cursor:pointer;transition:background .15s;text-decoration:none;color:var(--text)}
+.history-item:hover{background:var(--bg3)}
+.history-item.current{background:rgba(99,102,241,.1);border-left:3px solid var(--accent)}
+.history-time{font-size:13px;font-weight:500;white-space:nowrap}
+.history-stats{font-size:11px;color:var(--text2);display:flex;gap:8px}
+.history-stats .hp{color:var(--green)}.history-stats .hf{color:var(--red)}
+.history-empty{padding:20px;text-align:center;color:var(--text3);font-size:13px}
+</style>
+<script>{{ chartjs_code }}</script>
+</head>
+<body>
+<div class="container">
+  {{ render_header(data, config, summary, history_entries, latest_url) }}
+
+  <div class="main-content">
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" data-tab="overview">Overview</div>
+    <div class="tab" data-tab="suites">Suites</div>
+    <div class="tab" data-tab="failures">{{ 'failures' | t }} ({{ summary.failed + summary.error }})</div>
+    <div class="tab" data-tab="duration">{{ 'duration' | t }}</div>
+    <div class="tab" data-tab="details">{{ 'all_tests' | t }}</div>
+  </div>
+
+  <!-- Overview -->
+  <div class="tab-panel active" id="panel-overview">
+    {{ render_summary(summary, duration_str) }}
+  </div>
+
+  <!-- Suites -->
+  <div class="tab-panel" id="panel-suites">
+    {{ render_suites(suites_data) }}
+  </div>
+
+  <!-- Failures + Duration + All Tests -->
+  {{ render_details(failures, top_duration) }}
+
+  </div><!-- end main-content -->
+
+  {{ render_footer(data) }}
+</div>
+
+<script>
+// ── Theme ──
+function toggleTheme() {
+  var current = document.documentElement.getAttribute('data-theme');
+  var next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try { localStorage.setItem('litereport-theme', next); } catch(e) {}
+  updateChartColors();
+}
+(function() {
+  try {
+    var saved = localStorage.getItem('litereport-theme');
+    if (saved) document.documentElement.setAttribute('data-theme', saved);
+  } catch(e) {}
+})();
+
+// ── Data ──
+var allResults = {{ results_json }};
+
+// ── Tabs ──
+document.querySelectorAll('.tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// ── Suite expand/collapse ──
+function toggleSuite(id) {
+  var detail = document.getElementById('detail-' + id);
+  var arrow = document.getElementById('arrow-' + id);
+  if (detail.style.display === 'none') {
+    detail.style.display = '';
+    arrow.classList.add('open');
+  } else {
+    detail.style.display = 'none';
+    arrow.classList.remove('open');
+  }
+}
+
+// ── Charts ──
+var chartColors = {
+  passed:'#22c55e', failed:'#ef4444', skipped:'#eab308',
+  xfailed:'#a855f7', xpassed:'#f97316', error:'#ef4444'
+};
+function getThemeColors() {
+  var s = getComputedStyle(document.documentElement);
+  return {
+    grid: s.getPropertyValue('--bg3').trim(),
+    tick: s.getPropertyValue('--text2').trim(),
+    legend: s.getPropertyValue('--text').trim()
+  };
+}
+var _tc = getThemeColors();
+var gridColor = _tc.grid, tickColor = _tc.tick, legendColor = _tc.legend;
+
+// Helper: create horizontal gradient
+function hGradient(ctx, c1, c2) {
+  var g = ctx.chart.ctx.createLinearGradient(0, 0, ctx.chart.width, 0);
+  g.addColorStop(0, c1); g.addColorStop(1, c2);
+  return g;
+}
+
+// Rounded legend plugin (pill-shaped labels)
+var roundedLegend = {
+  id: 'roundedLegend',
+  afterDraw: function() {} // placeholder; styling via labels config
+};
+
+// Donut
+var donutLabelPlugin = {
+  id: 'donutDataLabels',
+  afterDatasetsDraw: function(chart) {
+    var ctx = chart.ctx;
+    var meta = chart.getDatasetMeta(0);
+    var dataset = chart.data.datasets[0];
+    meta.data.forEach(function(arc, i) {
+      var val = dataset.data[i];
+      if (!val) return;
+      // Calculate label position at the midpoint of the arc segment
+      var model = arc;
+      var startAngle = model.startAngle;
+      var endAngle = model.endAngle;
+      var midAngle = (startAngle + endAngle) / 2;
+      var innerRadius = model.innerRadius;
+      var outerRadius = model.outerRadius;
+      var midRadius = (innerRadius + outerRadius) / 2;
+      var x = model.x + Math.cos(midAngle) * midRadius;
+      var y = model.y + Math.sin(midAngle) * midRadius;
+      ctx.save();
+      ctx.fillStyle = legendColor;
+      ctx.font = 'bold 13px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(val, x, y);
+      ctx.restore();
+    });
+  }
+};
+var donutChart = new Chart(document.getElementById('chart-donut'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Passed','Failed','Error','Skipped','XFailed','XPassed'],
+    datasets: [{
+      data: [{{ summary.passed }},{{ summary.failed }},{{ summary.error }},{{ summary.skipped }},{{ summary.xfailed }},{{ summary.xpassed }}],
+      backgroundColor: ['#22c55e','#ef4444','#f97316','#eab308','#a855f7','#f59e0b'],
+      borderWidth: 0, hoverOffset: 8, borderRadius: 4, spacing: 2
+    }]
+  },
+  options: {
+    cutout: '62%',
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          color: legendColor, padding: 14, font: { size: 12 },
+          usePointStyle: true, pointStyle: 'rectRounded', pointStyleWidth: 16
+        }
+      }
+    }
+  },
+  plugins: [donutLabelPlugin]
+});
+
+// Suite stacked bar
+var barLabelPlugin = {
+  id: 'barDataLabels',
+  afterDatasetsDraw: function(chart) {
+    var ctx = chart.ctx;
+    var datasets = chart.data.datasets;
+    var labelCount = chart.data.labels.length;
+    // For each bar group, draw the total at the right end of the stacked bar
+    for (var i = 0; i < labelCount; i++) {
+      var total = 0;
+      var maxX = 0;
+      var barY = 0;
+      datasets.forEach(function(ds, dsIndex) {
+        var val = ds.data[i] || 0;
+        total += val;
+        if (val > 0) {
+          var bar = chart.getDatasetMeta(dsIndex).data[i];
+          var x2 = Math.max(bar.x, bar.base || 0);
+          if (x2 > maxX) {
+            maxX = x2;
+            barY = bar.y;
+          }
+        }
+      });
+      if (total === 0) continue;
+      ctx.save();
+      ctx.fillStyle = legendColor;
+      ctx.font = 'bold 11px system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(total, maxX + 6, barY);
+      ctx.restore();
+    }
+  }
+};
+var suiteChart = new Chart(document.getElementById('chart-category'), {
+  type: 'bar',
+  data: {
+    labels: {{ suite_labels_json }},
+    datasets: [
+      { label:'Passed', data:{{ suite_passed_json }}, backgroundColor: function(ctx) { return hGradient(ctx, '#16a34a', '#4ade80'); }, borderRadius: 4, borderSkipped: false, barThickness: 14 },
+      { label:'Failed', data:{{ suite_failed_json }}, backgroundColor: function(ctx) { return hGradient(ctx, '#dc2626', '#f87171'); }, borderRadius: 4, borderSkipped: false, barThickness: 14 },
+      { label:'Skipped', data:{{ suite_skipped_json }}, backgroundColor: function(ctx) { return hGradient(ctx, '#ca8a04', '#fde047'); }, borderRadius: 4, borderSkipped: false, barThickness: 14 }
+    ]
+  },
+  options: {
+    indexAxis: 'y',
+    layout: { padding: { right: 30 } },
+    scales: {
+      x: { stacked:true, grid:{color:gridColor}, ticks:{color:tickColor} },
+      y: { stacked:true, grid:{display:false}, ticks:{color:legendColor} }
+    },
+    plugins: {
+      legend: {
+        labels: {
+          color: legendColor, font: { size: 11 },
+          usePointStyle: true, pointStyle: 'rectRounded', pointStyleWidth: 16
+        }
+      }
+    }
+  },
+  plugins: [barLabelPlugin]
+});
+
+// Duration horizontal bar with gradient
+var durData = allResults.slice().sort(function(a,b){return b.duration-a.duration}).slice(0,15);
+var durGradients = [
+  ['#6366f1','#818cf8'], ['#22c55e','#4ade80'], ['#f59e0b','#fbbf24'],
+  ['#ef4444','#f87171'], ['#3b82f6','#60a5fa'], ['#a855f7','#c084fc'],
+  ['#ec4899','#f472b6'], ['#14b8a6','#2dd4bf'], ['#f97316','#fb923c'],
+  ['#06b6d4','#22d3ee'], ['#84cc16','#a3e635'], ['#e879f9','#f0abfc'],
+  ['#fb923c','#fdba74'], ['#38bdf8','#7dd3fc'], ['#facc15','#fde047']
+];
+var durLabelPlugin = {
+  id: 'durDataLabels',
+  afterDatasetsDraw: function(chart) {
+    var ctx = chart.ctx;
+    var meta = chart.getDatasetMeta(0);
+    var ds = chart.data.datasets[0];
+    meta.data.forEach(function(bar, i) {
+      var val = ds.data[i];
+      if (!val || val == 0) return;
+      ctx.save();
+      ctx.fillStyle = legendColor;
+      ctx.font = 'bold 11px system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(val + 's', bar.x + 6, bar.y);
+      ctx.restore();
+    });
+  }
+};
+var durChart = new Chart(document.getElementById('chart-duration'), {
+  type: 'bar',
+  data: {
+    labels: durData.map(function(r) { return r.name.length > 45 ? r.name.slice(0,45)+'...' : r.name; }),
+    datasets: [{
+      label: 'Duration (s)',
+      data: durData.map(function(r) { return r.duration.toFixed(2); }),
+      backgroundColor: function(ctx) {
+        var pair = durGradients[ctx.dataIndex % durGradients.length];
+        return hGradient(ctx, pair[0], pair[1]);
+      },
+      borderRadius: 6, borderSkipped: false, barThickness: 18
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    layout: { padding: { right: 50 } },
+    scales: {
+      x: { grid:{color:gridColor}, ticks:{color:tickColor} },
+      y: { grid:{display:false}, ticks:{color:legendColor, font:{size:11}} }
+    },
+    plugins: { legend:{display:false} }
+  },
+  plugins: [durLabelPlugin]
+});
+
+// ── Update chart colors on theme switch ──
+function updateChartColors() {
+  var c = getThemeColors();
+  gridColor = c.grid; tickColor = c.tick; legendColor = c.legend;
+  [donutChart, suiteChart, durChart].forEach(function(chart) {
+    if (!chart) return;
+    var opts = chart.options;
+    // legend
+    if (opts.plugins && opts.plugins.legend && opts.plugins.legend.labels) {
+      opts.plugins.legend.labels.color = legendColor;
+    }
+    // scales
+    if (opts.scales) {
+      if (opts.scales.x) {
+        if (opts.scales.x.grid) opts.scales.x.grid.color = gridColor;
+        if (opts.scales.x.ticks) opts.scales.x.ticks.color = tickColor;
+      }
+      if (opts.scales.y) {
+        if (opts.scales.y.ticks) opts.scales.y.ticks.color = legendColor;
+      }
+    }
+    chart.update();
+  });
+}
+
+// ── Details Table ──
+var currentFilter = 'all';
+var currentSearch = '';
+var sortKey = 'index';
+var sortAsc = true;
+
+function renderTable() {
+  var tbody = document.getElementById('details-tbody');
+  var rows = allResults.map(function(r, i) { return Object.assign({}, r, {index: i+1}); });
+
+  if (currentFilter !== 'all') rows = rows.filter(function(r) { return r.outcome === currentFilter; });
+  if (currentSearch) {
+    var q = currentSearch.toLowerCase();
+    rows = rows.filter(function(r) {
+      return r.nodeid.toLowerCase().indexOf(q) !== -1 || r.name.toLowerCase().indexOf(q) !== -1 || (r.description||'').toLowerCase().indexOf(q) !== -1;
+    });
+  }
+
+  rows.sort(function(a, b) {
+    var va = a[sortKey], vb = b[sortKey];
+    if (typeof va === 'string') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+    if (va < vb) return sortAsc ? -1 : 1;
+    if (va > vb) return sortAsc ? 1 : -1;
+    return 0;
+  });
+
+  tbody.innerHTML = rows.map(function(r) {
+    return '<tr>'
+      + '<td>' + r.index + '</td>'
+      + '<td class="test-name-cell" title="' + (r.nodeid||'') + '">' + (r.name||'') + '</td>'
+      + '<td class="desc-cell">' + (r.description || '<span style="color:var(--text3)">—</span>') + '</td>'
+      + '<td>' + (r.suite||'') + '</td>'
+      + '<td><span class="badge badge-' + r.outcome + '">' + r.outcome + '</span></td>'
+      + '<td class="duration-cell">' + r.duration.toFixed(2) + 's</td>'
+      + '</tr>';
+  }).join('');
+}
+renderTable();
+
+// Filter buttons
+document.querySelectorAll('.filter-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderTable();
+  });
+});
+
+// Search
+document.getElementById('search-input').addEventListener('input', function(e) {
+  currentSearch = e.target.value;
+  renderTable();
+});
+
+// Sort
+document.querySelectorAll('#details-table th[data-sort]').forEach(function(th) {
+  th.addEventListener('click', function() {
+    var key = th.dataset.sort;
+    if (sortKey === key) sortAsc = !sortAsc;
+    else { sortKey = key; sortAsc = true; }
+    renderTable();
+  });
+});
+
+// ── History ──
+var historyEntries = {{ history_json }};
+var currentTimestamp = '{{ data.timestamp | e }}';
+(function renderHistory() {
+  var dd = document.getElementById('history-dropdown');
+  if (!historyEntries.length) {
+    dd.innerHTML = '<div class="history-empty">&#x1F4ED; {{ "no_history" | t }}</div>';
+    return;
+  }
+  dd.innerHTML = historyEntries.map(function(h) {
+    var isCurrent = h.timestamp === currentTimestamp;
+    return '<a class="history-item' + (isCurrent ? ' current' : '') + '" href="' + h.filename + '">'
+      + '<span class="history-time">' + h.timestamp + '</span>'
+      + '<span class="history-stats">'
+      + '<span>&#x2211;' + h.total + '</span>'
+      + '<span class="hp">&#x2713;' + h.passed + '</span>'
+      + '<span class="hf">&#x2717;' + h.failed + '</span>'
+      + '<span>' + (h.duration || '') + '</span>'
+      + '</span>'
+      + (isCurrent ? '<span style="color:var(--accent2);font-size:11px">&#x25C0; {{ "current" | t }}</span>' : '')
+      + '</a>';
+  }).join('');
+})();
+
+// Close history dropdown
+document.addEventListener('click', function(e) {
+  var wrap = document.getElementById('history-wrap');
+  if (!wrap.contains(e.target)) wrap.classList.remove('open');
+});
+</script>
+</body>
+</html>

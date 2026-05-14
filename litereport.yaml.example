@@ -1,0 +1,24 @@
+# LiteReport Configuration
+# See https://github.com/example/litereport for full documentation.
+
+# Report settings
+report:
+  title: "My Test Report"          # Report title
+  # logo: "./assets/logo.png"      # Optional logo image (base64-embedded)
+  theme: "light"                   # light | dark
+  lang: "en"                       # en | zh
+
+# History reports
+history:
+  enabled: true                    # Enable history tracking
+  max_entries: 30                  # Max history entries to keep
+
+# Output settings
+output:
+  dir: "./reports"                 # Output directory
+  filename: "report.html"         # Output filename
+
+# Environment info (can be overridden at runtime)
+# environment:
+#   project: "MyProject"
+#   team: "QA"

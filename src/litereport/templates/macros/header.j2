@@ -1,0 +1,45 @@
+{% macro render_header(data, config, summary, history_entries, latest_url) %}
+{# Icon + label mapping for known environment keys #}
+{% set env_meta = {
+  "board_name":   {"icon": "&#x1F4DF;", "label": "Board"},
+  "board_port":   {"icon": "&#x1F50C;", "label": "Port"},
+  "chip_type":    {"icon": "&#x1F4A0;", "label": "Chip"},
+  "chip_version": {"icon": "&#x1F4CB;", "label": "Version"},
+  "chip_id":      {"icon": "&#x1F194;", "label": "Chip ID"},
+  "chip_uid":     {"icon": "&#x1F511;", "label": "UID"},
+  "python":       {"icon": "&#x1F40D;", "label": "Python"},
+  "platform":     {"icon": "&#x1F5A5;", "label": "Platform"}
+} %}
+<div class="header">
+  <div class="header-left">
+    <h1>
+      {% if config.logo %}<img src="{{ config.logo }}" alt="logo" style="height:28px;vertical-align:middle;margin-right:8px">{% endif %}
+      <span class="icon">&#x1F4CB;</span> {{ data.title | e }}
+    </h1>
+    <span class="header-timestamp">{{ data.timestamp | e }}</span>
+  </div>
+  <div class="history-wrap" id="history-wrap">
+    <a class="latest-btn" href="{{ latest_url }}" title="{{ 'latest_report' | t }}">&#x26A1; {{ 'latest_report' | t }}</a>
+    <button class="history-btn" onclick="document.getElementById('history-wrap').classList.toggle('open')">
+      &#x1F4C5; {{ 'history' | t }} <span class="arrow">&#x25BC;</span>
+    </button>
+    <div class="history-dropdown" id="history-dropdown"></div>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">&#x1F313;</button>
+  </div>
+</div>
+
+{% if data.environment %}
+<div class="env-cards">
+  {% for key, val in data.environment.items() %}
+  {% set meta = env_meta.get(key, {}) %}
+  <div class="env-card">
+    <div class="env-card-icon">{{ meta.get("icon", "&#x1F4CC;") }}</div>
+    <div class="env-card-body">
+      <div class="env-card-label">{{ meta.get("label", key) | e }}</div>
+      <div class="env-card-value" title="{{ val | e }}">{{ val | e }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endmacro %}

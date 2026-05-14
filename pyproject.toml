@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "litereport"
+version = "1.0.1"
+authors = [{ name="wsw", email="woosuoweish@gmail.com" }]
+description = "Lightweight test report visualization. Zero JDK, single HTML, offline ready."
+requires-python = ">=3.8"
+license = "MIT"
+readme = "README.md"
+dependencies = [
+    "jinja2>=3.1",
+    "pyyaml>=6.0",
+    "click>=8.0",
+]
+
+[project.optional-dependencies]
+pytest = ["pytest>=7.0"]
+dev = ["pytest", "pytest-cov"]
+
+[project.scripts]
+litereport = "litereport.cli:main"
+
+[project.entry-points."pytest11"]
+litereport = "litereport.pytest_plugin"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+litereport = ["templates/**/*.j2"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

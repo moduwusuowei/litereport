@@ -1,0 +1,15 @@
+report:
+  title: "Sample Config"
+  theme: "dark"
+  lang: "zh"
+
+history:
+  enabled: true
+  max_entries: 20
+
+output:
+  dir: "./test_output"
+  filename: "test_report.html"
+
+environment:
+  project: "SampleProject"
