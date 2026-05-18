@@ -75,6 +75,22 @@ class LiteReportPlugin:
         parts = report.nodeid.split("::")
         suite = parts[0].split("/")[-1].replace(".py", "") if parts else "unknown"
 
+        # Extract user_properties (e.g. screenshots attached by fixtures)
+        props = {}
+        screenshots = []
+        if hasattr(report, "user_properties"):
+            for key, value in report.user_properties:
+                if key == "screenshot":
+                    # Normalize: string (legacy) -> dict with label
+                    if isinstance(value, str):
+                        screenshots.append({"label": "", "data": value})
+                    elif isinstance(value, dict):
+                        screenshots.append(value)
+                else:
+                    props[key] = value
+        if screenshots:
+            props["screenshots"] = screenshots
+
         result = TestResult(
             name=getattr(report, "head_line", report.nodeid.split("::")[-1]),
             nodeid=report.nodeid,
@@ -87,6 +103,7 @@ class LiteReportPlugin:
             error_message=str(report.longrepr).split("\n")[0] if report.failed else "",
             error_traceback=str(report.longrepr) if report.failed else "",
             stdout=report.capstdout if hasattr(report, "capstdout") else "",
+            properties=props,
         )
         self._results.append(result)
 

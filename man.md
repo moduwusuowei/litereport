@@ -1,4 +1,4 @@
-# 告别 JDK 依赖 -- 用 LiteReport 为 pytest 项目打造轻量级测试报告
+# 【开源LiteReport】告别 JDK 依赖 -- 用 LiteReport 为 pytest 项目打造轻量级测试报告
 
 > 一行命令，一个 HTML 文件，零额外依赖。
 
@@ -27,6 +27,14 @@ git地址：https://github.com/moduwusuowei/litereport
 
 > **零 JDK、单 HTML 文件、离线可用。**
 
+
+
+安装：
+
+```python
+pip install pytest litereport[pytest]
+```
+
 具体来说：
 
 - **`pip install` 即装即用** -- 纯 Python 实现，不依赖 Java、Node.js 或任何外部二进制
@@ -35,6 +43,9 @@ git地址：https://github.com/moduwusuowei/litereport
 - **明暗主题切换** -- 支持 Light / Dark 两种主题，运行时一键切换，自动记忆偏好
 - **中英双语** -- `lang: "zh"` 或 `lang: "en"`，国际化团队友好
 - **历史追踪** -- 自动保存每次运行快照，在报告中可浏览历史记录
+- **Web UI 截图** -- 支持 Playwright 等工具逐步截图，base64 内嵌到报告中
+- **树状截图视图** -- 每个 case 的截图以可折叠树状结构展示，标注步骤说明和截图原因
+- **自动失败截图** -- 测试失败时自动捕获页面状态，⚠️ 标记区分手动/自动截图
 
 ## Allure vs LiteReport：一张表说清楚
 
@@ -45,6 +56,7 @@ git地址：https://github.com/moduwusuowei/litereport
 | pytest 集成 | `allure-pytest` + `allure generate` 两步 | `pytest --litereport` 一步 |
 | 报告查看 | 需 `allure open` 启动 HTTP 服务 | 双击 HTML 文件 |
 | 报告体积 | 多文件目录（JS/CSS/JSON/HTML） | 单个 HTML 文件 |
+| 截图支持 | `allure.attach` + 独立文件 | `screenshot()` 一行代码，base64 内嵌 |
 | 离线使用 | 部分功能需 CDN 资源 | 完全自包含，断网可用 |
 | CI/CD 产物 | 需 Allure 插件或额外配置 | 直接归档一个 HTML 文件 |
 | 上手成本 | 高（JDK + CLI + 插件配置） | 低（一个 pip 命令） |
@@ -554,6 +566,201 @@ litereport init
 - **CI/CD 流水线** -- 需要直接归档单个 HTML 文件作为构建产物
 - **离线环境** -- 报告完全自包含，不依赖外部 CDN 或 HTTP 服务
 - **快速原型** -- 新项目刚起步，先跑通测试报告再说
+- **Web UI 测试** -- 使用 Playwright 等工具进行页面测试，需要截图留证
+
+## 真实项目二瞥：Web UI 测试与页面截图
+
+除了 API 接口测试，LiteReport 现在也完美支持 **Web UI 自动化测试**，并能在报告中嵌入每个步骤的页面截图。
+
+### 背景：Web 测试的报告痛点
+
+Web UI 测试天然需要"视觉证据" -- 当测试失败时，你需要看到**失败那一刻的页面长什么样**。更进一步，一个完整的测试流程包含多个步骤，你希望看到**每一步操作后的页面状态**。
+
+传统做法是把截图保存为独立文件，然后在报告中引用路径。这带来的问题：
+
+- 截图文件和报告分离，传阅时容易丢失
+- CI/CD 中需要额外处理 artifacts 目录
+- 多人协作时路径不一致
+
+LiteReport 的解决方案：**截图以 base64 内嵌到报告 HTML 中**，报告仍然是一个单文件，包含所有截图数据，离线可用。
+
+### 项目结构
+
+```
+web-test/
+├── conftest.py          # Playwright fixture + screenshot() 函数
+├── pytest.ini           # pytest 配置
+├── litereport.yaml      # LiteReport 配置
+├── requirements.txt     # 依赖: playwright, pytest, litereport
+└── tests/
+    └── test_login_page.py   # 登录页测试（多步骤截图）
+```
+
+### 核心：`screenshot()` 函数
+
+整个截图机制的核心就是一个简单的函数：
+
+```python
+import base64
+
+def screenshot(page, request, label=""):
+    """捕获一步截图并附加到测试报告"""
+    b64 = base64.b64encode(page.screenshot(full_page=True)).decode("utf-8")
+    data_uri = f"data:image/png;base64,{b64}"
+    request.node.user_properties.append(("screenshot", {"label": label, "data": data_uri}))
+```
+
+**三个参数**：
+- `page` -- Playwright 的页面对象
+- `request` -- pytest 的 request fixture
+- `label` -- 这一步的说明文字（会显示在报告树状节点中）
+
+### 多步骤截图实战
+
+以登录页面测试为例，一个 case 中记录多个关键步骤：
+
+```python
+from conftest import screenshot
+
+class TestLoginPage:
+    def test_invalid_login(self, page, base_url, request):
+        """错误的用户名密码应提示登录失败"""
+        page.goto(f"{base_url}/login")
+        page.wait_for_load_state("networkidle")
+        screenshot(page, request, "1. 打开登录页")
+
+        page.locator("input[name='username']").first.fill("invalid_user")
+        page.locator("input[type='password']").first.fill("wrong_password")
+        screenshot(page, request, "2. 填写错误凭证")
+
+        page.locator("button[type='submit']").first.click()
+        page.wait_for_timeout(1000)
+        screenshot(page, request, "3. 提交后错误提示")
+```
+
+每次调用 `screenshot()`，就是在时间线上打一个"快照点"。最终报告中，这 3 张截图会以树状结构展示在这条用例下。
+
+### 失败自动截图
+
+除了手动截图，LiteReport 还支持**测试失败时自动截图**。在 `conftest.py` 中配置：
+
+```python
+def pytest_runtest_teardown(item, nextitem):
+    """测试失败时自动截图"""
+    rep = getattr(item, "rep_call", None)
+    if rep is None or not rep.failed:
+        return
+    page = item.funcargs.get("page")
+    if page is None or page.is_closed():
+        return
+    try:
+        b64 = base64.b64encode(page.screenshot(full_page=True)).decode("utf-8")
+        data_uri = f"data:image/png;base64,{b64}"
+        item.user_properties.append(("screenshot", {"label": "[Auto] Failure", "data": data_uri}))
+    except Exception:
+        pass
+```
+
+自动截图会以 `[Auto] Failure` 标签标记，在报告中用警告图标 ⚠️ 和黄色文字突出显示，与手动截图一目了然地区分。
+
+### 报告展示：树状折叠视图
+
+截图在报告中不是简单的图片列表，而是一个**可折叠的树状结构**：
+
+```
+📸 截图 (3)
+├─ ▶ 📷 1. 打开登录页          ← 点击展开查看截图
+├─ ▶ 📷 2. 填写错误凭证        ← 默认折叠，不占空间
+└─ ▶ ⚠️ [Auto] Failure         ← 自动截图，黄色警告标记
+```
+
+![web-test-tree-view](./blog/web-test-tree-view.png)
+
+**设计理念**：
+
+- **默认折叠** -- 不打开的节点不加载图片渲染，报告打开速度不受影响
+- **按需展开** -- 点击步骤名称展开，看到该步骤的页面截图缩略图
+- **类型区分** -- 📷 手动截图 vs ⚠️ 自动失败截图，一眼看出截图原因
+- **大图预览** -- 点击缩略图弹出模态框大图，支持左右箭头翻页
+
+### 全部用例表格中的截图
+
+在"全部用例"标签页中，有截图的用例行左侧显示 ▶ 箭头：
+
+![web-test-all-tests](./blog/web-test-all-tests.png)
+
+**交互方式**：
+- 点击整行展开截图树
+- 每个步骤可独立展开/收起
+- 点击缩略图打开大图模态框，支持键盘左右翻页
+
+### 运行方式
+
+```bash
+cd web-test
+pip install -r requirements.txt
+playwright install chromium
+
+# 确保目标页面在运行（如 http://localhost:3000）
+pytest --litereport
+```
+
+报告生成在 `web-test/reports/report.html`，所有截图内嵌其中，直接传阅即可。
+
+### 配置示例
+
+```yaml
+report:
+  title: "Web UI 测试报告"
+  theme: "light"
+  lang: "zh"
+
+history:
+  enabled: true
+  max_entries: 30
+
+output:
+  dir: "./reports"
+  filename: "report.html"
+
+environment:
+  project: "Web UI Testing"
+  target_url: "http://localhost:3000"
+  test_type: "Web UI 测试"
+```
+
+### 数据格式
+
+截图数据存储在 `TestResult.properties.screenshots` 中，是标准 JSON 列表：
+
+```json
+{
+  "properties": {
+    "screenshots": [
+      {"label": "1. 打开登录页", "data": "data:image/png;base64,..."},
+      {"label": "2. 填写错误凭证", "data": "data:image/png;base64,..."},
+      {"label": "[Auto] Failure", "data": "data:image/png;base64,..."}
+    ]
+  }
+}
+```
+
+> **注意**：base64 截图会增大报告体积（单张全页截图约 100-500KB），数十个截图的报告仍在可接受范围内。对于大规模测试，建议控制截图步骤数量。
+
+## Allure vs LiteReport 对比（更新版）
+
+| 维度 | Allure | LiteReport |
+|------|--------|------------|
+| 运行依赖 | JDK 8+ | Python 3.8+ |
+| 安装方式 | pip + allure CLI | `pip install litereport` |
+| pytest 集成 | 两步：采集 + 生成 | 一步：`pytest --litereport` |
+| 报告查看 | 需启动 HTTP 服务 | 双击 HTML 文件 |
+| 报告体积 | 多文件目录 | 单个 HTML 文件 |
+| 截图支持 | 需 allure.attach | `screenshot(page, request, label)` |
+| 截图存储 | 独立文件 + 引用 | base64 内嵌，单文件自包含 |
+| Web UI 测试 | 支持（需额外配置） | 原生支持 Playwright + 自动失败截图 |
+| 截图展示 | 平铺附件列表 | 树状折叠 + 步骤标签 + 类型标记 |
+| 离线使用 | 部分功能需 CDN | 完全自包含 |
 
 ## 开始使用
 
@@ -567,3 +774,5 @@ pytest --litereport
 ---
 
 *LiteReport 是开源项目，欢迎贡献代码和反馈意见。*
+
+期待您的star~~~

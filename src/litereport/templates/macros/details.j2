@@ -13,6 +13,28 @@
         {% if r.description %}<div class="failure-desc">{{ r.description | e }}</div>{% endif %}
         <div class="failure-message">{{ r.error_message | e }}</div>
         <pre class="failure-traceback">{{ r.error_traceback | e }}</pre>
+        {% if r.properties.get('screenshots') %}
+        <div class="shot-tree">
+          <div class="shot-tree-title"><span>&#x1F4F8;</span> {{ 'screenshot' | t }} ({{ r.properties.screenshots | length }})</div>
+          {% for shot in r.properties.screenshots %}
+          <div class="shot-node" onclick="if(event.target.tagName!=='IMG')this.classList.toggle('open')">
+            <div class="shot-header">
+              <span class="shot-arrow">&#x25B6;</span>
+              {% if shot.label and '[Auto]' in shot.label %}
+                <span class="shot-type">&#x26A0;&#xFE0F;</span>
+                <span class="shot-label-auto">{{ shot.label | e }}</span>
+              {% else %}
+                <span class="shot-type">&#x1F4F7;</span>
+                <span class="shot-label-text">{{ shot.label | default('Screenshot ' ~ loop.index, true) | e }}</span>
+              {% endif %}
+            </div>
+            <div class="shot-body">
+              <img src="{{ shot.data }}" alt="{{ shot.label | e }}" onclick="event.stopPropagation();openScreenshotModal(this.src)" title="Click to enlarge">
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
       </div>
     </div>
     {% endfor %}
@@ -71,6 +93,7 @@
           <th data-sort="suite">Suite</th>
           <th data-sort="outcome">Status</th>
           <th data-sort="duration">{{ 'duration' | t }}</th>
+          <th>{{ 'screenshot' | t }}</th>
         </tr></thead>
         <tbody id="details-tbody"></tbody>
       </table>

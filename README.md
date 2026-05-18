@@ -18,6 +18,8 @@ An alternative to Allure for teams that want beautiful test reports without Java
 - **Duration analysis** — Top slowest tests with charts
 - **YAML config** — Customize title, theme, language, output path
 - **pytest plugin** — `pytest --litereport` generates reports automatically
+- **Web UI screenshots** — Capture step-by-step screenshots in web tests, embedded as base64 in reports
+- **Screenshot tree view** — Collapsible tree structure showing each step with labeled screenshots
 
 ## Installation
 
@@ -190,6 +192,110 @@ gen = ReportGenerator(config)
 gen.generate(data, "reports/report.html")
 ```
 
+## Web UI Testing with Screenshots
+
+LiteReport supports capturing step-by-step screenshots in web UI tests (e.g. with Playwright) and embedding them directly into the HTML report.
+
+### Setup
+
+```bash
+pip install playwright pytest litereport
+playwright install chromium
+```
+
+### Screenshot API
+
+In your `conftest.py`, define a `screenshot()` helper:
+
+```python
+import base64
+
+def screenshot(page, request, label=""):
+    """Capture a step screenshot and attach to test report."""
+    b64 = base64.b64encode(page.screenshot(full_page=True)).decode("utf-8")
+    data_uri = f"data:image/png;base64,{b64}"
+    request.node.user_properties.append(("screenshot", {"label": label, "data": data_uri}))
+```
+
+### Usage in Tests
+
+```python
+from conftest import screenshot
+
+class TestLoginPage:
+    def test_login_flow(self, page, base_url, request):
+        """Complete login flow with step screenshots"""
+        page.goto(f"{base_url}/login")
+        screenshot(page, request, "1. Open login page")
+
+        page.fill("input[name='username']", "admin")
+        page.fill("input[type='password']", "123456")
+        screenshot(page, request, "2. Fill credentials")
+
+        page.click("button[type='submit']")
+        page.wait_for_timeout(1000)
+        screenshot(page, request, "3. After submit")
+```
+
+### Auto-screenshot on Failure
+
+Add to `conftest.py` for automatic failure screenshots:
+
+```python
+import pytest
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    rep = outcome.get_result()
+    setattr(item, f"rep_{rep.when}", rep)
+
+def pytest_runtest_teardown(item, nextitem):
+    rep = getattr(item, "rep_call", None)
+    if rep is None or not rep.failed:
+        return
+    page = item.funcargs.get("page")
+    if page is None or page.is_closed():
+        return
+    try:
+        b64 = base64.b64encode(page.screenshot(full_page=True)).decode("utf-8")
+        data_uri = f"data:image/png;base64,{b64}"
+        item.user_properties.append(("screenshot", {"label": "[Auto] Failure", "data": data_uri}))
+    except Exception:
+        pass
+```
+
+### Report Display
+
+Screenshots appear in the report as a collapsible tree:
+
+```
+📸 Screenshots (3)
+├─ ▶ 📷 1. Open login page       ← click to expand
+├─ ▶ 📷 2. Fill credentials      ← each step collapsed by default
+└─ ▶ ⚠️ [Auto] Failure           ← auto-failure marked in yellow
+```
+
+- **All Tests tab**: Click any row with screenshots to expand the step tree
+- **Failures tab**: Screenshot tree shown below error traceback
+- **Modal viewer**: Click any thumbnail for full-size view with arrow-key navigation
+
+### Data Format
+
+Screenshots are stored in `TestResult.properties.screenshots` as a list:
+
+```json
+{
+  "properties": {
+    "screenshots": [
+      {"label": "1. Open login page", "data": "data:image/png;base64,..."},
+      {"label": "2. Fill credentials", "data": "data:image/png;base64,..."},
+      {"label": "[Auto] Failure", "data": "data:image/png;base64,..."}
+    ]
+  }
+}
+```
+
 ## Project Structure
 
 ```
@@ -309,6 +415,102 @@ pytest --litereport --litereport-title="基金监控系统 API 测试报告" -v
 # 报告输出到 reports/report.html
 ```
 
+## Web UI 测试与截图
+
+LiteReport 支持在 Web UI 测试中（如使用 Playwright）逐步截图，并将截图以 base64 内嵌到 HTML 报告中，报告仍然是单文件自包含可离线查看。
+
+### 安装依赖
+
+```bash
+pip install playwright pytest litereport
+playwright install chromium
+```
+
+### 截图 API
+
+在 `conftest.py` 中定义 `screenshot()` 函数：
+
+```python
+import base64
+
+def screenshot(page, request, label=""):
+    """捕获一步截图并附加到测试报告"""
+    b64 = base64.b64encode(page.screenshot(full_page=True)).decode("utf-8")
+    data_uri = f"data:image/png;base64,{b64}"
+    request.node.user_properties.append(("screenshot", {"label": label, "data": data_uri}))
+```
+
+### 在测试中使用
+
+```python
+from conftest import screenshot
+
+class TestLoginPage:
+    def test_login_flow(self, page, base_url, request):
+        """完整登录流程多步骤截图"""
+        page.goto(f"{base_url}/login")
+        screenshot(page, request, "1. 打开登录页")
+
+        page.fill("input[name='username']", "admin")
+        page.fill("input[type='password']", "123456")
+        screenshot(page, request, "2. 填写用户名密码")
+
+        page.click("button[type='submit']")
+        page.wait_for_timeout(1000)
+        screenshot(page, request, "3. 点击登录按钮")
+```
+
+### 失败自动截图
+
+在 `conftest.py` 中添加 hook，测试失败时自动截图：
+
+```python
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    rep = outcome.get_result()
+    setattr(item, f"rep_{rep.when}", rep)
+
+def pytest_runtest_teardown(item, nextitem):
+    rep = getattr(item, "rep_call", None)
+    if rep is None or not rep.failed:
+        return
+    page = item.funcargs.get("page")
+    if page is None or page.is_closed():
+        return
+    try:
+        b64 = base64.b64encode(page.screenshot(full_page=True)).decode("utf-8")
+        data_uri = f"data:image/png;base64,{b64}"
+        item.user_properties.append(("screenshot", {"label": "[Auto] Failure", "data": data_uri}))
+    except Exception:
+        pass
+```
+
+### 报告展示效果
+
+截图在报告中以树状折叠结构展示：
+
+```
+📸 截图 (3)
+├─ ▶ 📷 1. 打开登录页          ← 点击展开查看截图
+├─ ▶ 📷 2. 填写用户名密码      ← 默认折叠
+└─ ▶ ⚠️ [Auto] Failure         ← 自动失败截图黄色标记
+```
+
+- **全部用例标签页**：点击有截图的行展开步骤树
+- **失败详情标签页**：错误 traceback 下方显示截图树
+- **模态框大图**：点击缩略图弹出大图，支持左右箭头翻页
+- **自动失败截图**：`[Auto]` 前缀 + 警告图标 + 黄色标记，一眼区分截图原因
+
+### 运行方式
+
+```bash
+cd web-test
+pip install -r requirements.txt
+playwright install chromium
+pytest --litereport
+# 报告输出到 reports/report.html
+```
 
 
 ## License

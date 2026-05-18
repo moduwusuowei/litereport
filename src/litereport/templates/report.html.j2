@@ -120,6 +120,38 @@ tr:hover td{background:rgba(99,102,241,.05)}
 .failure-message{color:var(--red);font-size:13px;padding:12px 0 8px;font-weight:500}
 .failure-desc{color:var(--text2);font-size:13px;padding:12px 0 4px;border-bottom:1px dashed var(--bg4);margin-bottom:4px}
 .failure-traceback{background:var(--bg);color:var(--text2);padding:12px;border-radius:var(--radius-sm);font-size:12px;line-height:1.5;overflow-x:auto;max-height:400px;white-space:pre-wrap;word-break:break-all}
+/* ── Screenshot tree ── */
+.shot-tree{padding:12px 0}
+.shot-tree-title{font-size:12px;color:var(--text2);font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.shot-tree-title span{font-size:14px}
+.shot-node{border-left:2px solid var(--bg4);margin-left:8px;padding-left:12px;margin-bottom:2px}
+.shot-node:last-child{border-left-color:transparent}
+.shot-header{display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;font-size:13px;transition:color .15s;user-select:none}
+.shot-header:hover{color:var(--accent2)}
+.shot-arrow{display:inline-block;font-size:9px;color:var(--text3);transition:transform .2s;width:12px;flex-shrink:0}
+.shot-node.open .shot-arrow{transform:rotate(90deg)}
+.shot-type{font-size:14px;flex-shrink:0}
+.shot-label-text{color:var(--text);font-weight:500}
+.shot-label-auto{color:var(--yellow);font-weight:500}
+.shot-body{display:none;padding:6px 0 10px 20px}
+.shot-node.open .shot-body{display:block}
+.shot-body img{max-width:100%;max-height:240px;border-radius:var(--radius-sm);border:1px solid var(--bg3);cursor:pointer;transition:opacity .2s;display:block}
+.shot-body img:hover{opacity:.85}
+.screenshot-icon{cursor:pointer;font-size:14px;padding:2px 8px;border-radius:4px;background:var(--blue-bg);color:var(--blue);border:none;font-weight:500}
+.screenshot-icon:hover{background:var(--blue);color:#fff}
+.expandable-row:hover td{background:rgba(99,102,241,.08)}
+.expandable-row .shot-arrow{display:inline-block;font-size:9px;color:var(--text3);transition:transform .2s;margin-right:4px}
+.expandable-row .shot-arrow.open{transform:rotate(90deg)}
+/* ── Screenshot modal ── */
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center}
+.modal-overlay.active{display:flex}
+.modal-overlay img{max-width:92%;max-height:85%;border-radius:var(--radius);box-shadow:0 4px 32px rgba(0,0,0,.5)}
+.modal-close{position:fixed;top:16px;right:24px;color:#fff;font-size:32px;cursor:pointer;z-index:10000;line-height:1;background:none;border:none}
+.modal-nav{position:fixed;top:50%;color:#fff;font-size:36px;cursor:pointer;z-index:10000;background:rgba(255,255,255,.15);border:none;border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center;transition:.2s}
+.modal-nav:hover{background:rgba(255,255,255,.3)}
+.modal-prev{left:20px;transform:translateY(-50%)}
+.modal-next{right:20px;transform:translateY(-50%)}
+.modal-label{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);color:#fff;font-size:14px;z-index:10000;background:rgba(0,0,0,.5);padding:6px 16px;border-radius:var(--radius-sm)}
 /* ── Suite name ── */
 .suite-name{font-weight:600;color:var(--accent2)}
 .suite-row{cursor:pointer;transition:background .15s}
@@ -182,6 +214,15 @@ tr:hover td{background:rgba(99,102,241,.05)}
 
   </div><!-- end main-content -->
 
+  <!-- Screenshot modal -->
+  <div class="modal-overlay" id="screenshot-modal" onclick="if(event.target===this)closeScreenshotModal()">
+    <button class="modal-close" onclick="closeScreenshotModal()">&times;</button>
+    <button class="modal-nav modal-prev" onclick="event.stopPropagation();modalPrev()">&#x2039;</button>
+    <img id="modal-img" src="" alt="Screenshot">
+    <button class="modal-nav modal-next" onclick="event.stopPropagation();modalNext()">&#x203A;</button>
+    <div class="modal-label" id="modal-label"></div>
+  </div>
+
   {{ render_footer(data) }}
 </div>
 
@@ -200,6 +241,50 @@ function toggleTheme() {
     if (saved) document.documentElement.setAttribute('data-theme', saved);
   } catch(e) {}
 })();
+
+// ── Screenshot modal ──
+var _modalShots = [];
+var _modalIdx = 0;
+
+function openScreenshotModal(src, shots, idx) {
+  if (shots && shots.length) {
+    _modalShots = shots;
+    _modalIdx = idx || 0;
+  } else {
+    _modalShots = [{label: '', data: src}];
+    _modalIdx = 0;
+  }
+  _showModalImage();
+  document.getElementById('screenshot-modal').classList.add('active');
+}
+function _showModalImage() {
+  var shot = _modalShots[_modalIdx];
+  document.getElementById('modal-img').src = shot.data;
+  var label = document.getElementById('modal-label');
+  var navs = document.querySelectorAll('.modal-nav');
+  if (_modalShots.length > 1) {
+    label.textContent = (shot.label ? shot.label + ' \u2014 ' : '') + (_modalIdx+1) + '/' + _modalShots.length;
+    label.style.display = '';
+    navs.forEach(function(n) { n.style.display = ''; });
+  } else {
+    label.textContent = shot.label || '';
+    label.style.display = shot.label ? '' : 'none';
+    navs.forEach(function(n) { n.style.display = 'none'; });
+  }
+}
+function modalPrev() { _modalIdx = (_modalIdx - 1 + _modalShots.length) % _modalShots.length; _showModalImage(); }
+function modalNext() { _modalIdx = (_modalIdx + 1) % _modalShots.length; _showModalImage(); }
+function closeScreenshotModal() {
+  document.getElementById('screenshot-modal').classList.remove('active');
+  document.getElementById('modal-img').src = '';
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeScreenshotModal();
+  if (document.getElementById('screenshot-modal').classList.contains('active')) {
+    if (e.key === 'ArrowLeft') modalPrev();
+    if (e.key === 'ArrowRight') modalNext();
+  }
+});
 
 // ── Data ──
 var allResults = {{ results_json }};
@@ -480,16 +565,62 @@ function renderTable() {
     return 0;
   });
 
-  tbody.innerHTML = rows.map(function(r) {
-    return '<tr>'
+  var html = '';
+  rows.forEach(function(r) {
+    var shots = r.properties && r.properties.screenshots;
+    var hasShots = shots && shots.length;
+    var rowId = 'shots-row-' + r.index;
+    // Main row
+    html += '<tr' + (hasShots ? ' class="expandable-row" onclick="toggleShotRow(\'' + rowId + '\')" style="cursor:pointer"' : '') + '>'
       + '<td>' + r.index + '</td>'
-      + '<td class="test-name-cell" title="' + (r.nodeid||'') + '">' + (r.name||'') + '</td>'
-      + '<td class="desc-cell">' + (r.description || '<span style="color:var(--text3)">—</span>') + '</td>'
+      + '<td class="test-name-cell" title="' + (r.nodeid||'') + '">'
+      + (hasShots ? '<span class="shot-arrow" id="arrow-' + rowId + '">&#x25B6;</span> ' : '')
+      + (r.name||'') + '</td>'
+      + '<td class="desc-cell">' + (r.description || '<span style="color:var(--text3)">\u2014</span>') + '</td>'
       + '<td>' + (r.suite||'') + '</td>'
       + '<td><span class="badge badge-' + r.outcome + '">' + r.outcome + '</span></td>'
       + '<td class="duration-cell">' + r.duration.toFixed(2) + 's</td>'
+      + '<td>' + (hasShots ? '&#x1F4F7; ' + shots.length : '') + '</td>'
       + '</tr>';
-  }).join('');
+    // Expandable screenshot tree row (hidden by default)
+    if (hasShots) {
+      html += '<tr id="' + rowId + '" style="display:none"><td colspan="7" style="padding:0 14px 12px 40px;background:var(--bg)">'
+        + '<div class="shot-tree" style="padding:8px 0">';
+      shots.forEach(function(shot, si) {
+        var isAuto = shot.label && shot.label.indexOf('[Auto]') !== -1;
+        var nodeId = rowId + '-n' + si;
+        html += '<div class="shot-node" id="' + nodeId + '" onclick="event.stopPropagation();if(event.target.tagName!==\'IMG\')document.getElementById(\'' + nodeId + '\').classList.toggle(\'open\')">'
+          + '<div class="shot-header">'
+          + '<span class="shot-arrow">&#x25B6;</span>'
+          + (isAuto
+            ? '<span class="shot-type">&#x26A0;&#xFE0F;</span><span class="shot-label-auto">' + _escHtml(shot.label) + '</span>'
+            : '<span class="shot-type">&#x1F4F7;</span><span class="shot-label-text">' + _escHtml(shot.label || 'Screenshot ' + (si+1)) + '</span>')
+          + '</div>'
+          + '<div class="shot-body">'
+          + '<img src="' + shot.data + '" alt="' + _escHtml(shot.label) + '" onclick="event.stopPropagation();openScreenshotModal(null,allResults[' + (r.index-1) + '].properties.screenshots,' + si + ')" title="Click to enlarge">'
+          + '</div></div>';
+      });
+      html += '</div></td></tr>';
+    }
+  });
+  tbody.innerHTML = html;
+}
+
+function _escHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toggleShotRow(rowId) {
+  var row = document.getElementById(rowId);
+  var arrow = document.getElementById('arrow-' + rowId);
+  if (row.style.display === 'none') {
+    row.style.display = '';
+    if (arrow) arrow.classList.add('open');
+  } else {
+    row.style.display = 'none';
+    if (arrow) arrow.classList.remove('open');
+  }
 }
 renderTable();
 

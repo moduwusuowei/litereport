@@ -31,6 +31,7 @@ I18N: Dict[str, Dict[str, str]] = {
         "latest_report": "Latest Report",
         "no_history": "No history reports",
         "current": "Current",
+        "screenshot": "Screenshot",
     },
     "zh": {
         "passed": "通过",
@@ -48,6 +49,7 @@ I18N: Dict[str, Dict[str, str]] = {
         "latest_report": "最新报告",
         "no_history": "暂无历史报告",
         "current": "当前",
+        "screenshot": "截图",
     },
 }
 
