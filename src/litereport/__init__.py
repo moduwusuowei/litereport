@@ -1,6 +1,6 @@
 """LiteReport — Lightweight test report visualization."""
 
-__version__ = "1.0.0"
+__version__ = "1.0.3"
 
 from litereport.models import TestResult, ReportData
 from litereport.config import LiteReportConfig

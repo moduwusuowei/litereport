@@ -50,6 +50,12 @@ class TestReportGenerator:
         assert "Passed" in html
         assert "Failed" in html
 
+    def test_render_embeds_chartjs(self):
+        gen = ReportGenerator()
+        html = gen.render(_sample_data())
+        assert "Chart" in html
+        assert "function" in html
+
     def test_render_with_history(self):
         gen = ReportGenerator()
         history = [

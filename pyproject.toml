@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "litereport"
-version = "1.0.2"
+version = "1.0.3"
 authors = [{ name="wsw", email="woosuoweish@gmail.com" }]
 description = "Lightweight test report visualization. Zero JDK, single HTML, offline ready."
 requires-python = ">=3.8"
@@ -30,7 +30,10 @@ litereport = "litereport.pytest_plugin"
 where = ["src"]
 
 [tool.setuptools.package-data]
-litereport = ["templates/**/*.j2"]
+litereport = [
+    "templates/**/*.j2",
+    "templates/chartjs.min.js",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

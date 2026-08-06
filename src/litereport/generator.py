@@ -161,7 +161,7 @@ class ReportGenerator:
             history_entries=history_entries or [],
             history_json=json.dumps(history_entries or [], ensure_ascii=False),
             latest_url=latest_url,
-            version="1.0.0",
+            version="1.0.3",
             chartjs_code=self._chartjs_code,
         )
 

@@ -12,10 +12,10 @@ from litereport.config import LiteReportConfig
 from litereport.generator import ReportGenerator
 from litereport.history import HistoryManager
 from litereport.adapters import auto_detect
-/requesting-code-review
+from litereport import __version__
 
 @click.group()
-@click.version_option(package_name="litereport")
+@click.version_option(version=__version__)
 def main():
     """LiteReport — Lightweight test report visualization."""
     pass
