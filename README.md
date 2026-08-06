@@ -133,6 +133,20 @@ The plugin automatically:
 - Generates the HTML report on session finish
 - Saves history snapshots for navigation
 
+### pytest-xdist (parallel execution)
+
+Works with [pytest-xdist](https://github.com/pytest-dev/pytest-xdist) — no extra
+setup needed:
+
+```bash
+pytest --litereport -n 4
+```
+
+Under xdist each worker dumps its own result shard and the master process merges
+all shards before generating the final report, so the HTML contains the complete
+run (docstrings, markers, captured stdout, screenshots and failure details are
+preserved from every worker). Serial runs behave exactly as before.
+
 ## JSON Format
 
 LiteReport uses a simple JSON schema:
