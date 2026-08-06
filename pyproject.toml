@@ -30,7 +30,7 @@ litereport = "litereport.pytest_plugin"
 where = ["src"]
 
 [tool.setuptools.package-data]
-litereport = ["templates/**/*.j2"]
+litereport = ["templates/**/*.j2", "templates/*.js"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
