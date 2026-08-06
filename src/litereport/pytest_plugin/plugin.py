@@ -53,6 +53,7 @@ class LiteReportPlugin:
             self.config.title = title_override
         self._results: List[TestResult] = []
         self._descriptions: Dict[str, str] = {}
+        self._markers: Dict[str, List[str]] = {}
         self._start_time = 0.0
 
         # Detect pytest-xdist execution mode:
@@ -67,11 +68,17 @@ class LiteReportPlugin:
         self._start_time = time.time()
 
     def pytest_runtest_setup(self, item):
-        """Capture docstrings early — TestReport doesn't have item attribute."""
+        """Capture docstrings and markers early — TestReport doesn't carry them
+        reliably (pytest >= 9 exposes keywords as a plain dict, so markers can
+        no longer be read from the report object)."""
         try:
             doc = item.function.__doc__
             if doc:
                 self._descriptions[item.nodeid] = doc.strip()
+        except (AttributeError, TypeError):
+            pass
+        try:
+            self._markers[item.nodeid] = [m.name for m in item.iter_markers()]
         except (AttributeError, TypeError):
             pass
 
@@ -79,12 +86,7 @@ class LiteReportPlugin:
         if report.when != "call":
             return
 
-        markers = []
-        try:
-            for marker in report.keywords.get("pytestmark", []):
-                markers.append(marker.name)
-        except (AttributeError, TypeError):
-            pass
+        markers = self._markers.get(report.nodeid, [])
 
         parts = report.nodeid.split("::")
         suite = parts[0].split("/")[-1].replace(".py", "") if parts else "unknown"
